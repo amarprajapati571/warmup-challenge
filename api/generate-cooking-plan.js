@@ -2,6 +2,7 @@ import { buildCookingPlanPrompt, validateCookingPlan } from "../src/services/gen
 import { sanitizePlannerInput, validatePlannerInputData } from "../src/utils/userInput.js";
 
 const aiTimeoutMs = 15000;
+const defaultModel = "gpt-4.1-mini";
 
 export default async function handler(request, response) {
   if (request.method !== "POST") {
@@ -9,10 +10,13 @@ export default async function handler(request, response) {
     return;
   }
 
-  const apiKey = process.env.OPENAI_API_KEY;
+  const apiKey = process.env.OPENAI_API_KEY || process.env.GPT_API_KEY;
+  const model = process.env.OPENAI_MODEL || process.env.GPT_MODEL || defaultModel;
 
   if (!apiKey) {
-    response.status(503).json({ error: "AI backend is not configured." });
+    response.status(503).json({
+      error: "AI backend is not configured. Add OPENAI_API_KEY or GPT_API_KEY on the server.",
+    });
     return;
   }
 
@@ -44,7 +48,7 @@ export default async function handler(request, response) {
         "Content-Type": "application/json",
       },
       body: JSON.stringify({
-        model: process.env.OPENAI_MODEL || "gpt-4.1-mini",
+        model,
         input: buildCookingPlanPrompt(safeInput),
         text: {
           format: {

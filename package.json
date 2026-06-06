@@ -4,8 +4,9 @@
   "private": true,
   "type": "module",
   "scripts": {
-    "dev": "python3 -m http.server 8000",
-    "check": "node --check src/main.js && node --check src/components/App.js && node --check src/components/DayInputForm.js && node --check src/components/MealPlanResult.js && node --check src/components/TodoList.js && node --check src/components/GroceryList.js && node --check src/components/SubstitutionList.js && node --check src/data/mockPlan.js && node --check src/utils/budget.js && node --check src/utils/groceryList.js && node --check src/utils/substitutions.js && node --check src/utils/userInput.js && node --check src/services/generateCookingPlan.js && node --check api/generate-cooking-plan.js && node --check test/budget.test.js && node --check test/plan.test.js && node --check test/userInput.test.js",
+    "dev": "node server.js",
+    "static": "python3 -m http.server 8000",
+    "check": "node --check server.js && node --check src/main.js && node --check src/components/App.js && node --check src/components/DayInputForm.js && node --check src/components/MealPlanResult.js && node --check src/components/TodoList.js && node --check src/components/GroceryList.js && node --check src/components/SubstitutionList.js && node --check src/data/mockPlan.js && node --check src/utils/budget.js && node --check src/utils/groceryList.js && node --check src/utils/substitutions.js && node --check src/utils/userInput.js && node --check src/services/generateCookingPlan.js && node --check api/generate-cooking-plan.js && node --check test/budget.test.js && node --check test/plan.test.js && node --check test/userInput.test.js && node --check test/groceryList.test.js && node --check test/aiValidation.test.js",
     "test": "node --test"
   }
 }
