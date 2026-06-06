@@ -30,12 +30,12 @@ export function App(root) {
       <section class="form-panel" aria-labelledby="planner-form-title">
         ${DayInputForm()}
       </section>
-      <section class="result-panel" aria-labelledby="planner-results-title">
+      <section class="result-panel" aria-labelledby="planner-results-title" tabindex="-1">
         <div class="result-heading">
           <p class="eyebrow">Generated plan</p>
           <h2 id="planner-results-title">Today's cooking list</h2>
         </div>
-        <div id="result-area" aria-live="polite">
+        <div id="result-area" aria-live="polite" aria-atomic="false">
           ${emptyResult}
         </div>
       </section>
@@ -44,6 +44,7 @@ export function App(root) {
 
   const form = root.querySelector("#day-input-form");
   const resultArea = root.querySelector("#result-area");
+  const resultPanel = root.querySelector(".result-panel");
   const generateButton = root.querySelector("#generate-button");
 
   form.addEventListener("submit", async (event) => {
@@ -72,6 +73,7 @@ export function App(root) {
       setupTodoList(resultArea, completedTaskIds);
       setupGroceryList(resultArea, checkedGroceryItemIds);
       setupSubstitutionList(resultArea);
+      resultPanel?.focus({ preventScroll: false });
     } catch (error) {
       console.error(error);
       resultArea.innerHTML = ErrorMessage("Something went wrong while generating your plan. Please try again.");

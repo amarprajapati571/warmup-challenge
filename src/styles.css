@@ -171,9 +171,21 @@ textarea {
 input:focus,
 select:focus,
 textarea:focus,
-button:focus-visible {
+button:focus-visible,
+.result-panel:focus-visible {
   outline: 3px solid rgba(23, 126, 117, 0.25);
   outline-offset: 2px;
+}
+
+[aria-invalid="true"] {
+  border-color: var(--red);
+}
+
+.field-error {
+  margin: 0;
+  color: var(--red);
+  font-size: 0.86rem;
+  font-weight: 750;
 }
 
 .fieldset {
