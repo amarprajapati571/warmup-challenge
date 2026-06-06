@@ -11,7 +11,7 @@ export function SubstitutionList(substitutions) {
           <p class="eyebrow">Flex options</p>
           <h3 id="substitution-list-title">Substitutions</h3>
         </div>
-        <button class="secondary-button" type="button" data-show-cheaper-swaps>Show cheaper swaps</button>
+        <button class="secondary-button" type="button" aria-pressed="false" data-show-cheaper-swaps>Show cheaper swaps</button>
       </div>
       <ul class="substitution-list">
         ${safeSubstitutions

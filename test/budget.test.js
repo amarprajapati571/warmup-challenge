@@ -54,3 +54,23 @@ test("does not count already available pantry items", () => {
   assert.equal(result.difference, 6);
   assert.equal(result.status, "Within budget");
 });
+
+test("handles an empty grocery list", () => {
+  const result = calculateBudgetStatus([], 20);
+
+  assert.equal(result.estimatedTotal, 0);
+  assert.equal(result.userBudget, 20);
+  assert.equal(result.difference, 20);
+  assert.equal(result.percentageUsed, 0);
+  assert.equal(result.status, "Within budget");
+});
+
+test("treats invalid budget as over budget", () => {
+  const result = calculateBudgetStatus([{ name: "Rice", estimatedCost: 4 }], 0);
+
+  assert.equal(result.estimatedTotal, 4);
+  assert.equal(result.userBudget, 0);
+  assert.equal(result.difference, -4);
+  assert.equal(result.percentageUsed, 0);
+  assert.equal(result.status, "Over budget");
+});

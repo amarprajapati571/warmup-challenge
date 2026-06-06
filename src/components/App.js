@@ -75,7 +75,6 @@ export function App(root) {
       setupSubstitutionList(resultArea);
       resultPanel?.focus({ preventScroll: false });
     } catch (error) {
-      console.error(error);
       resultArea.innerHTML = ErrorMessage("Something went wrong while generating your plan. Please try again.");
     } finally {
       setGenerateLoading(generateButton, false);

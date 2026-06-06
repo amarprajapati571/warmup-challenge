@@ -53,20 +53,7 @@ export async function generateCookingPlan(userInput) {
       globalThis.clearTimeout(timeoutId);
     }
 
-    console.info("Using safe fallback cooking plan.");
-    const fallbackPlan = createMockPlan(safeInput);
-    const grocery = cleanGroceryList(fallbackPlan, safeInput);
-    const planWithGrocery = {
-      ...fallbackPlan,
-      ...grocery,
-    };
-    const budget = calculateBudgetStatus(flattenGroceryItems(planWithGrocery.groceryList), safeInput.budget);
-
-    return {
-      ...planWithGrocery,
-      budget,
-      substitutions: cleanSubstitutions(planWithGrocery, safeInput),
-    };
+    return finalizePlan(createMockPlan(safeInput), safeInput);
   }
 }
 
@@ -189,9 +176,9 @@ export function validateCookingPlan(candidatePlan, userInput) {
       estimatedSaving: toSafeCost(substitution.estimatedSaving),
     }));
 
-  const budget = validateBudget(candidatePlan.budget, userInput);
+  const aiBudget = validateBudget(candidatePlan.budget, userInput);
 
-  if (!budget) {
+  if (!aiBudget) {
     errors.push("Budget response is invalid.");
   }
 
@@ -201,23 +188,27 @@ export function validateCookingPlan(candidatePlan, userInput) {
     todoList,
     groceryList: aiGroceryList,
     substitutions,
-    budget,
+    budget: aiBudget,
   };
-  const grocery = cleanGroceryList(normalizedPlan, userInput);
-  const planWithGrocery = {
-    ...normalizedPlan,
-    ...grocery,
-  };
-  const calculatedBudget = calculateBudgetStatus(flattenGroceryItems(planWithGrocery.groceryList), userInput.budget);
 
   return {
     valid: errors.length === 0,
     errors,
-    plan: {
-      ...planWithGrocery,
-      budget: calculatedBudget,
-      substitutions: cleanSubstitutions(planWithGrocery, userInput),
-    },
+    plan: finalizePlan(normalizedPlan, userInput),
+  };
+}
+
+function finalizePlan(plan, userInput) {
+  const grocery = cleanGroceryList(plan, userInput);
+  const planWithGrocery = {
+    ...plan,
+    ...grocery,
+  };
+
+  return {
+    ...planWithGrocery,
+    budget: calculateBudgetStatus(flattenGroceryItems(planWithGrocery.groceryList), userInput.budget),
+    substitutions: cleanSubstitutions(planWithGrocery, userInput),
   };
 }
 

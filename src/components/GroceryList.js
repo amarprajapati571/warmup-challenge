@@ -17,7 +17,7 @@ export function GroceryList(groups, totalCost = 0, checkedGroceryItemIds = new S
         </div>
         <button class="secondary-button" type="button" data-copy-grocery-list>Copy grocery list</button>
       </div>
-      <textarea class="copy-buffer" data-grocery-copy-text readonly>${escapeHtml(copyText)}</textarea>
+      <textarea class="copy-buffer" data-grocery-copy-text tabindex="-1" readonly>${escapeHtml(copyText)}</textarea>
       <p class="copy-status" data-copy-status aria-live="polite"></p>
       <div class="grocery-grid">
         ${safeGroups
