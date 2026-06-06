@@ -1,4 +1,7 @@
 import { buildCookingPlanPrompt, validateCookingPlan } from "../src/services/generateCookingPlan.js";
+import { sanitizePlannerInput, validatePlannerInputData } from "../src/utils/userInput.js";
+
+const aiTimeoutMs = 15000;
 
 export default async function handler(request, response) {
   if (request.method !== "POST") {
@@ -20,9 +23,19 @@ export default async function handler(request, response) {
     return;
   }
 
+  const safeInput = sanitizePlannerInput(userInput);
+  const inputErrors = validatePlannerInputData(safeInput);
+
+  if (inputErrors.length > 0) {
+    response.status(400).json({ error: "Invalid user input.", details: inputErrors });
+    return;
+  }
+
   let aiResponse;
 
   try {
+    const controller = new AbortController();
+    const timeoutId = setTimeout(() => controller.abort(), aiTimeoutMs);
     aiResponse = await fetch("https://api.openai.com/v1/responses", {
       method: "POST",
       headers: {
@@ -31,16 +44,20 @@ export default async function handler(request, response) {
       },
       body: JSON.stringify({
         model: process.env.OPENAI_MODEL || "gpt-4.1-mini",
-        input: buildCookingPlanPrompt(userInput),
+        input: buildCookingPlanPrompt(safeInput),
         text: {
           format: {
             type: "json_object",
           },
         },
       }),
+      signal: controller.signal,
     });
-  } catch {
-    response.status(502).json({ error: "AI provider request failed." });
+    clearTimeout(timeoutId);
+  } catch (error) {
+    response.status(error?.name === "AbortError" ? 504 : 502).json({
+      error: error?.name === "AbortError" ? "AI provider request timed out." : "AI provider request failed.",
+    });
     return;
   }
 
@@ -49,8 +66,22 @@ export default async function handler(request, response) {
     return;
   }
 
-  const payload = await aiResponse.json();
+  let payload;
+
+  try {
+    payload = await aiResponse.json();
+  } catch {
+    response.status(502).json({ error: "AI provider returned malformed JSON." });
+    return;
+  }
+
   const rawText = payload.output_text || payload.output?.[0]?.content?.[0]?.text || "";
+
+  if (!rawText.trim()) {
+    response.status(422).json({ error: "AI returned an empty response." });
+    return;
+  }
+
   let candidatePlan;
 
   try {
@@ -61,7 +92,7 @@ export default async function handler(request, response) {
   }
 
   // Model output is untrusted data, so validate and normalize it before any UI renders it.
-  const validation = validateCookingPlan(candidatePlan, userInput);
+  const validation = validateCookingPlan(candidatePlan, safeInput);
 
   if (!validation.valid) {
     response.status(422).json({ error: "AI returned invalid plan JSON.", details: validation.errors });

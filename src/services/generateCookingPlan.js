@@ -2,8 +2,10 @@ import { createMockPlan } from "../data/mockPlan.js";
 import { calculateBudgetStatus, flattenGroceryItems } from "../utils/budget.js";
 import { cleanGroceryList } from "../utils/groceryList.js";
 import { cleanSubstitutions } from "../utils/substitutions.js";
+import { sanitizePlannerInput, validatePlannerInputData } from "../utils/userInput.js";
 
 const endpoint = "/api/generate-cooking-plan";
+const aiTimeoutMs = 12000;
 const allowedMealTypes = ["Breakfast", "Lunch", "Dinner"];
 const allowedTodoMealTypes = [...allowedMealTypes, "Lunch/Dinner", "General"];
 const allowedPriorities = ["High", "Medium", "Low"];
@@ -11,25 +13,34 @@ const allowedCategories = ["Produce", "Dairy", "Protein", "Grains", "Spices", "P
 const allowedBudgetStatuses = ["Within budget", "Near limit", "Over budget"];
 
 export async function generateCookingPlan(userInput) {
+  const safeInput = sanitizePlannerInput(userInput);
+  const inputErrors = validatePlannerInputData(safeInput);
+
+  if (inputErrors.length > 0) {
+    throw new Error(`Invalid cooking plan input: ${inputErrors.join(", ")}`);
+  }
+
   try {
+    const controller = new AbortController();
+    const timeoutId = globalThis.setTimeout(() => controller.abort(), aiTimeoutMs);
     const response = await fetch(endpoint, {
       method: "POST",
       headers: {
         "Content-Type": "application/json",
       },
       body: JSON.stringify({
-        userInput,
-        prompt: buildCookingPlanPrompt(userInput),
-        schema: cookingPlanSchema,
+        userInput: safeInput,
       }),
+      signal: controller.signal,
     });
+    globalThis.clearTimeout(timeoutId);
 
     if (!response.ok) {
       throw new Error("Cooking plan API unavailable.");
     }
 
-    const candidatePlan = await response.json();
-    const validation = validateCookingPlan(candidatePlan, userInput);
+    const candidatePlan = await readJsonResponse(response);
+    const validation = validateCookingPlan(candidatePlan, safeInput);
 
     if (!validation.valid) {
       throw new Error(`Invalid cooking plan response: ${validation.errors.join(", ")}`);
@@ -38,18 +49,18 @@ export async function generateCookingPlan(userInput) {
     return validation.plan;
   } catch {
     console.info("Using safe fallback cooking plan.");
-    const fallbackPlan = createMockPlan(userInput);
-    const grocery = cleanGroceryList(fallbackPlan, userInput);
+    const fallbackPlan = createMockPlan(safeInput);
+    const grocery = cleanGroceryList(fallbackPlan, safeInput);
     const planWithGrocery = {
       ...fallbackPlan,
       ...grocery,
     };
-    const budget = calculateBudgetStatus(flattenGroceryItems(planWithGrocery.groceryList), userInput.budget);
+    const budget = calculateBudgetStatus(flattenGroceryItems(planWithGrocery.groceryList), safeInput.budget);
 
     return {
       ...planWithGrocery,
       budget,
-      substitutions: cleanSubstitutions(planWithGrocery, userInput),
+      substitutions: cleanSubstitutions(planWithGrocery, safeInput),
     };
   }
 }
@@ -203,6 +214,20 @@ export function validateCookingPlan(candidatePlan, userInput) {
       substitutions: cleanSubstitutions(planWithGrocery, userInput),
     },
   };
+}
+
+async function readJsonResponse(response) {
+  const text = await response.text();
+
+  if (!text.trim()) {
+    throw new Error("Cooking plan API returned an empty response.");
+  }
+
+  try {
+    return JSON.parse(text);
+  } catch {
+    throw new Error("Cooking plan API returned malformed JSON.");
+  }
 }
 
 function isValidMeal(meal, requestedMealTypes) {
