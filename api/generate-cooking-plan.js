@@ -32,10 +32,11 @@ export default async function handler(request, response) {
   }
 
   let aiResponse;
+  let timeoutId;
 
   try {
     const controller = new AbortController();
-    const timeoutId = setTimeout(() => controller.abort(), aiTimeoutMs);
+    timeoutId = setTimeout(() => controller.abort(), aiTimeoutMs);
     aiResponse = await fetch("https://api.openai.com/v1/responses", {
       method: "POST",
       headers: {
@@ -55,6 +56,10 @@ export default async function handler(request, response) {
     });
     clearTimeout(timeoutId);
   } catch (error) {
+    if (timeoutId) {
+      clearTimeout(timeoutId);
+    }
+
     response.status(error?.name === "AbortError" ? 504 : 502).json({
       error: error?.name === "AbortError" ? "AI provider request timed out." : "AI provider request failed.",
     });

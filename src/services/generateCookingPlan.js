@@ -15,6 +15,7 @@ const allowedBudgetStatuses = ["Within budget", "Near limit", "Over budget"];
 export async function generateCookingPlan(userInput) {
   const safeInput = sanitizePlannerInput(userInput);
   const inputErrors = validatePlannerInputData(safeInput);
+  let timeoutId;
 
   if (inputErrors.length > 0) {
     throw new Error(`Invalid cooking plan input: ${inputErrors.join(", ")}`);
@@ -22,7 +23,7 @@ export async function generateCookingPlan(userInput) {
 
   try {
     const controller = new AbortController();
-    const timeoutId = globalThis.setTimeout(() => controller.abort(), aiTimeoutMs);
+    timeoutId = globalThis.setTimeout(() => controller.abort(), aiTimeoutMs);
     const response = await fetch(endpoint, {
       method: "POST",
       headers: {
@@ -48,6 +49,10 @@ export async function generateCookingPlan(userInput) {
 
     return validation.plan;
   } catch {
+    if (timeoutId) {
+      globalThis.clearTimeout(timeoutId);
+    }
+
     console.info("Using safe fallback cooking plan.");
     const fallbackPlan = createMockPlan(safeInput);
     const grocery = cleanGroceryList(fallbackPlan, safeInput);
